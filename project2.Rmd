@@ -1,0 +1,120 @@
+---
+title: "STA322 Project 2"
+author: "Sherry Huang, Eddie Yang"
+date: "April 2019"
+output:
+    pdf_document:
+    keep_tex: yes
+    latex_engine: xelatex
+---
+
+####Introduction
+  This study aims to examine the factors in desgining a paper helicopter that affect how long it can fly in the air. Specifically, the study focuses on four factors: rotor length, leg length, leg width, and whether or not there is a paper clip at the bottom of the leg. This report includes details of the full factorial experiment design, procedures of data collection, and analysis of estimation results using regression modelling.
+  
+####Study Design and Data Collection
+  The four binary factors examined for paper helicopter fly time in this study are shown in the table below. 
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+factors = data.frame(Factor = c("Rotor Length (a)", "Leg Length (b)", "Leg Width (c)", "Paper Clip (d)"),
+                     Low = c("7.5cm", "7.5cm", "3.2cm", "No"),
+                     High = c("8.5cm", "12.0cm", "5.0cm", "Yes"))
+knitr::kable(factors, caption = "Paper Helicopter Factors")
+```
+  
+  Because each factor has two levels, there are a total of $2^4 = 16$ total possible treatment assignments. Since we have no prior knowledge of how these factors interact with each other and thus cannot assume their interaction effects are negligible, we decided to use a full factorial design for this experiment, which allows us to examine all main effects and interaction effects. 8 paper helicopters are made following the guidelines posted on Sakai by the same person to ensure consistency, each of which corresponds to a possible treatment assignment. Adding the paper clip to each of 8 helicopters gives us the other 8 possible treatment combinations. A standard silver paper clip is added to the bottom of the leg of each helicopter so that the lower side of the clip alligns with the bottom edge of the leg. 5 trials are conducted for each of the 16 assignment, which gives us $16 * 5 = 80$ trials in total. The trials are completed in a completely randomized order.
+  During each trial, we drop the paper helicopter at the height of exactly 2 meters, and the flight time is measured in seconds from the time the helicopter is dropped to the time it hits the floor. The data is recorded in the accompanying data file "helidata.csv". The 16 treatments are donated with respective letter combinations. For example, a treatment of "o" indicates that all four factors are at their low level, while "ab" indicates that rotor length and leg length are at their high values, leg width is at its low level, and there is no paper clip on the leg. The table below shows the first 5 rows of the data frame.
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+heliData = read.csv("helidata.csv", header = TRUE)
+heliData$treatments = as.factor(heliData$treatments)
+heliData$a = as.factor(heliData$a)
+heliData$b = as.factor(heliData$b)
+heliData$c = as.factor(heliData$c)
+heliData$d = as.factor(heliData$d)
+knitr::kable(helidData[1:5,], caption = "First 5 Rows of Collected Data")
+```
+
+####Data Analysis and Results
+
+```{r}
+#Exploratory Data Analysis
+boxplot(heliData$time ~ heliData$treatments, xlab = "Treatment", ylab = "Fly Time")
+par(mfrow=c(2,2))   
+boxplot(heliData$time ~ heliData$a, xlab = "Rotor Length", ylab = "Fly Time")
+boxplot(heliData$time ~ heliData$b, xlab = "Leg Length", ylab = "Fly Time")
+boxplot(heliData$time ~ heliData$c, xlab = "Leg Width", ylab = "Fly Time")
+boxplot(heliData$time ~ heliData$d, xlab = "Leg Paper Clip", ylab = "Fly Time")
+```
+
+
+```{r}
+#Regression
+regHeli = lm(time ~ a*b*c*d, data = heliData)
+summary(regHeli)
+#Print regression results
+knitr::kable(data.frame(estimates = regHeli$coefficients,
+                        pvalues = c("<2e-16",0.015218,0.032935,"6.03e-7",0.768488,0.524367,"2.86e-07",
+                                    0.002908,0.459207,0.639734,0.000751,0.005955,0.317770,0.003342,
+                                    0.496702,0.117377)),
+             caption = "Full Factorial Regression Results")
+
+#Residual Plot
+boxplot(regHeli$residual~heliData$treatments, xlab = "Treatment", ylab = "Residuals")
+#Diagnostic Plots
+plot(regHeli)
+```
+
+Which factors seeme to be the most important for making helicopters that fly longer?
+Is there any evidence that the effect of rotor length differs by leg width?
+What would you recommend as the ideal combination to make the helicopter fly long?
+
+####Discussion
+  In our data collection process, there are a few possible sources of error. First, the helicopters are dropped by hand. The person who drops them might apply some force on the helicopter upon releasing, resulting in different initial velocities. Second, because the time is recorded by hand, inaccuracy is inevitable.
+  
+####Code
+
+```{r message=FALSE, warning=FALSE}
+#Randomize treatment assignments
+assignments = c(rep("o",5), rep("a",5), rep("b",5), rep("c",5), rep("d",5),
+                rep("ab",5), rep("ac",5),rep("ad",5), rep("bc",5), rep("bd",5),
+                rep("cd",5), rep("abc",5), rep("abd",5), rep("acd",5), 
+                rep("bcd",5), rep("abcd",5))
+set.seed(322)
+assignments = sample(assignments)
+helidata = data.frame(treatments = assignments, 
+                      a = NA, b = NA, c = NA, d = NA, time = NA)
+write.csv(helidata, file = "helidata.csv")
+
+#Collect data, enter manually, and read file again
+heliData = read.csv("helidata.csv", header = TRUE)
+#Convert treatments to factors
+heliData$treatments = as.factor(heliData$treatments)
+heliData$a = as.factor(heliData$a)
+heliData$b = as.factor(heliData$b)
+heliData$c = as.factor(heliData$c)
+heliData$d = as.factor(heliData$d)
+
+#Exploratory Data Analysis
+boxplot(heliData$time ~ heliData$treatments, xlab = "Treatment", ylab = "Fly Time")
+par(mfrow=c(2,2))   
+boxplot(heliData$time ~ heliData$a, xlab = "Rotor Length", ylab = "Fly Time")
+boxplot(heliData$time ~ heliData$b, xlab = "Leg Length", ylab = "Fly Time")
+boxplot(heliData$time ~ heliData$c, xlab = "Leg Width", ylab = "Fly Time")
+boxplot(heliData$time ~ heliData$d, xlab = "Leg Paper Clip", ylab = "Fly Time")
+
+#Regression
+regHeli = lm(time ~ a*b*c*d, data = heliData)
+summary(regHeli)
+
+#Print regression results
+knitr::kable(data.frame(estimates = regHeli$coefficients,
+                        pvalues = c("<2e-16",0.015218,0.032935,"6.03e-7",0.768488,0.524367,"2.86e-07",
+                                    0.002908,0.459207,0.639734,0.000751,0.005955,0.317770,0.003342,
+                                    0.496702,0.117377)),
+             caption = "Full Factorial Regression Results")
+
+#Residual Plot
+boxplot(regHeli$residual~heliData$treatments, xlab = "Treatment", ylab = "Residuals")
+#Diagnostic Plots
+plot(regHeli)
+```
+
+  
