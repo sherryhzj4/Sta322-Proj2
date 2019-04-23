@@ -22,52 +22,61 @@ knitr::kable(factors, caption = "Paper Helicopter Factors")
   
   Because each factor has two levels, there are a total of $2^4 = 16$ total possible treatment assignments. Since we have no prior knowledge of how these factors interact with each other and thus cannot assume their interaction effects are negligible, we decided to use a full factorial design for this experiment, which allows us to examine all main effects and interaction effects. 8 paper helicopters are made following the guidelines posted on Sakai by the same person to ensure consistency, each of which corresponds to a possible treatment assignment. Adding the paper clip to each of 8 helicopters gives us the other 8 possible treatment combinations. A standard silver paper clip is added to the bottom of the leg of each helicopter so that the lower side of the clip alligns with the bottom edge of the leg. 5 trials are conducted for each of the 16 assignment, which gives us $16 * 5 = 80$ trials in total. The trials are completed in a completely randomized order.
   During each trial, we drop the paper helicopter at the height of exactly 2 meters, and the flight time is measured in seconds from the time the helicopter is dropped to the time it hits the floor. The data is recorded in the accompanying data file "helidata.csv". The 16 treatments are donated with respective letter combinations. For example, a treatment of "o" indicates that all four factors are at their low level, while "ab" indicates that rotor length and leg length are at their high values, leg width is at its low level, and there is no paper clip on the leg. The table below shows the first 5 rows of the data frame.
+  
 ```{r echo=FALSE, message=FALSE, warning=FALSE}
 heliData = read.csv("helidata.csv", header = TRUE)
+heliData = heliData[,-1]
 heliData$treatments = as.factor(heliData$treatments)
 heliData$a = as.factor(heliData$a)
 heliData$b = as.factor(heliData$b)
 heliData$c = as.factor(heliData$c)
 heliData$d = as.factor(heliData$d)
-knitr::kable(helidData[1:5,], caption = "First 5 Rows of Collected Data")
+knitr::kable(heliData[1:5,], caption = "First 5 Rows of Collected Data")
 ```
 
 ####Data Analysis and Results
+  As exploratory data analysis, we make boxplots of paper helicopter fly time against all treatment combinations and the four main factors. It is shown that a few treatment assignments yield a significantly higher or lower fly time than others, but there are great variabilities across trials. For each of the four main factors, it seems like there is a noticable difference in median fly times between low and high level of each factor. From the boxplots, it seems like a paper helicopter with a longer rotor, a narrower and shorter leg, and no paper clip will fly longer in the air.
 
-```{r}
+```{r echo=FALSE, message=FALSE, warning=FALSE}
 #Exploratory Data Analysis
+par(mfrow=c(3,2))   
 boxplot(heliData$time ~ heliData$treatments, xlab = "Treatment", ylab = "Fly Time")
-par(mfrow=c(2,2))   
 boxplot(heliData$time ~ heliData$a, xlab = "Rotor Length", ylab = "Fly Time")
 boxplot(heliData$time ~ heliData$b, xlab = "Leg Length", ylab = "Fly Time")
 boxplot(heliData$time ~ heliData$c, xlab = "Leg Width", ylab = "Fly Time")
 boxplot(heliData$time ~ heliData$d, xlab = "Leg Paper Clip", ylab = "Fly Time")
 ```
 
+We fit a linear regression model with all main effects, all two-way, three-way, and four-way interaction effects on the collected data. The coefficients and p-values for the full factorial regression are shown in the table below.
 
-```{r}
+```{r echo=FALSE, message=FALSE, warning=FALSE}
 #Regression
 regHeli = lm(time ~ a*b*c*d, data = heliData)
-summary(regHeli)
+
 #Print regression results
 knitr::kable(data.frame(estimates = regHeli$coefficients,
-                        pvalues = c("<2e-16",0.015218,0.032935,"6.03e-7",0.768488,0.524367,"2.86e-07",
-                                    0.002908,0.459207,0.639734,0.000751,0.005955,0.317770,0.003342,
-                                    0.496702,0.117377)),
+                        pvalues = c("<2e-16",0.0568,0.2957,0.0622,0.8831,0.0224,0.8237,
+                                    0.0216,0.0452,0.0452,0.0172,0.2462,0.2067,0.7290,
+                                    0.2504,0.8937)),
              caption = "Full Factorial Regression Results")
+```
 
+  Judging from the coefficients, leg width (c) seems to be the most important factor that will make helicopters fly longer: fly time increases 0.18s on average with per centimeter increase of leg width, with a 95% confidence interval of (-0.00948, 0.36948). Its p-value is 0.0622, which is very close to the 0.05 threshold and may suggest statistical significance. On the other hand, rotor length (a) seems to be the most important factor that will make helicopters fly shorter: fly time decreases 0.184s on average with per centimeter increase of rotor length, with a 95% confidence interval of (-0.37348, 0.00548). Its p-value is 0.0568, which is also very close to 0.05 and might suggest statistical significance. Since the interaction effect between leg width (c) and rotor length (a) has a close to zero coefficient and a large p-value of 0.8831, there is not enough evidence that the effect of rotor length differs by leg width. Its 95% confidence interval, (-0.23796, 0.29796), further suggests that the interaction effect is not significant, if any. 
+
+What would you recommend as the ideal combination to make the helicopter fly long? -> bcd???
+Regression diagnostics?
+
+```{r}
 #Residual Plot
 boxplot(regHeli$residual~heliData$treatments, xlab = "Treatment", ylab = "Residuals")
 #Diagnostic Plots
 plot(regHeli)
 ```
 
-Which factors seeme to be the most important for making helicopters that fly longer?
-Is there any evidence that the effect of rotor length differs by leg width?
-What would you recommend as the ideal combination to make the helicopter fly long?
+
 
 ####Discussion
-  In our data collection process, there are a few possible sources of error. First, the helicopters are dropped by hand. The person who drops them might apply some force on the helicopter upon releasing, resulting in different initial velocities. Second, because the time is recorded by hand, inaccuracy is inevitable.
+  In our data collection process, there are a few possible sources of error. First, the helicopters are dropped by hand. The person who drops them might apply some force on the helicopter upon releasing, resulting in different initial velocities. In some cases, in order not to let helicopters hit the wall, the person stood away from any surfaces and may make dropping heights vary due to lack of marking. Second, because the time is recorded by hand, inaccuracy is inevitable. It is especially difficult to start and stop the timer exactly at the moment the helicopter is dropped or when it hits the ground. Eyeballing for both timing and dropping heights can lead to noises and inaccuracies in the data. Increasing repetitions for each assignment may be helpful. In addition, we notice that in some trials the helicopter spins vertically and stably while in others it randomly floats around. The helicopter can move in the air for a similar amount of time, but some designs may allow it to fly more "properly" than others, and therefore the fly time may not be the most optimal outcome variable upon which the design factors are evaluated. For the narrower leg width, since two pieces of paper are folded to the center according to instruction, this may add more stability to the helicopter than the case with a wider leg width where it is just a piece of paper. It can be a confounding factor in the analysis. 
   
 ####Code
 
@@ -103,12 +112,13 @@ boxplot(heliData$time ~ heliData$d, xlab = "Leg Paper Clip", ylab = "Fly Time")
 #Regression
 regHeli = lm(time ~ a*b*c*d, data = heliData)
 summary(regHeli)
+confint(regHeli)
 
 #Print regression results
 knitr::kable(data.frame(estimates = regHeli$coefficients,
-                        pvalues = c("<2e-16",0.015218,0.032935,"6.03e-7",0.768488,0.524367,"2.86e-07",
-                                    0.002908,0.459207,0.639734,0.000751,0.005955,0.317770,0.003342,
-                                    0.496702,0.117377)),
+                        pvalues = c("<2e-16",0.0568,0.2957,0.0622,0.8831,0.0224,0.8237,
+                                    0.0216,0.0452,0.0452,0.0172,0.2462,0.2067,0.7290,
+                                    0.2504,0.8937)),
              caption = "Full Factorial Regression Results")
 
 #Residual Plot
