@@ -26,7 +26,6 @@ knitr::kable(factors, caption = "Paper Helicopter Factors")
 ```{r echo=FALSE, message=FALSE, warning=FALSE}
 heliData = read.csv("helidata.csv", header = TRUE)
 heliData = heliData[,-1]
-heliData$treatments = as.factor(heliData$treatments)
 heliData$a = as.factor(heliData$a)
 heliData$b = as.factor(heliData$b)
 heliData$c = as.factor(heliData$c)
@@ -39,8 +38,8 @@ knitr::kable(heliData[1:5,], caption = "First 5 Rows of Collected Data")
 
 ```{r echo=FALSE, message=FALSE, warning=FALSE}
 #Exploratory Data Analysis
-par(mfrow=c(3,2))   
 boxplot(heliData$time ~ heliData$treatments, xlab = "Treatment", ylab = "Fly Time")
+par(mfrow=c(2,2))   
 boxplot(heliData$time ~ heliData$a, xlab = "Rotor Length", ylab = "Fly Time")
 boxplot(heliData$time ~ heliData$b, xlab = "Leg Length", ylab = "Fly Time")
 boxplot(heliData$time ~ heliData$c, xlab = "Leg Width", ylab = "Fly Time")
@@ -54,43 +53,49 @@ We fit a linear regression model with all main effects, all two-way, three-way, 
 regHeli = lm(time ~ a*b*c*d, data = heliData)
 
 #Print regression results
-knitr::kable(data.frame(estimates = regHeli$coefficients,
-                        pvalues = c("<2e-16",0.0568,0.2957,0.0622,0.8831,0.0224,0.8237,
+regfull = data.frame(confint(regHeli))
+colnames(regfull)[1] = "2.5"
+colnames(regfull)[2] = "97.5"
+regfull$coefficients = regHeli$coefficients
+regfull$pvalues = c("<2e-16",0.0568,0.2957,0.0622,0.8831,0.0224,0.8237,
                                     0.0216,0.0452,0.0452,0.0172,0.2462,0.2067,0.7290,
-                                    0.2504,0.8937)),
+                                    0.2504,0.8937)
+knitr::kable(data.frame(regfull),
              caption = "Full Factorial Regression Results")
 ```
 
-  Judging from the coefficients, leg width (c) seems to be the most important factor that will make helicopters fly longer: fly time increases 0.18s on average with per centimeter increase of leg width, with a 95% confidence interval of (-0.00948, 0.36948). Its p-value is 0.0622, which is very close to the 0.05 threshold and may suggest statistical significance. On the other hand, rotor length (a) seems to be the most important factor that will make helicopters fly shorter: fly time decreases 0.184s on average with per centimeter increase of rotor length, with a 95% confidence interval of (-0.37348, 0.00548). Its p-value is 0.0568, which is also very close to 0.05 and might suggest statistical significance. Since the interaction effect between leg width (c) and rotor length (a) has a close to zero coefficient and a large p-value of 0.8831, there is not enough evidence that the effect of rotor length differs by leg width. Its 95% confidence interval, (-0.23796, 0.29796), further suggests that the interaction effect is not significant, if any. 
+  To find out the most important factor that affect helicopter fly time, nested F-tests are conducted one at a time between the full model and models excluding each factor. Specific code and output can be found at the end of this report. The test done for the model without the paper clip factor yields the highest F score (7.7634) and the lowest p-value (3.224e-07), indicating that whether or not the helicopter has a paper clip at the bottom of its leg is the most important factor for fly time. The regression coefficients show that, although the main effect of paper clip is not statistically significant, it has significant interactione effects with all the other factors. When all other factors are at their lower levels, the fly time of the paper helicopter decreases 0.014s (95% CI: -0.20348, 0.17548) on average if there is a paper clip added to the leg. When leg length and width are short, adding a paper clip increases the impact of having a longer roter length by 0.274s (95% CI: 0.00604, 0.54196); when rotor length and leg width are low, adding a paper clip decreases the impact of having a longer leg length by 0.274s (95% CI: -0.54196, -0.00604); similarly, when rotor length and leg length are low, adding a paper clip decreases the impact of a wider leg by 0.328s (95% CI: -0.59596, -0.06004).  
+  Since the interaction effect between leg width (c) and rotor length (a) has a close to zero coefficient and a large p-value of 0.8831, there is not enough evidence that the effect of rotor length differs by leg width. Its 95% confidence interval, (-0.23796, 0.29796), further suggests that the interaction effect is not significant, if any. 
+  Using the coefficients from the full regression model, we can also calculate the estimated average fly time for all possible combination of assignments. Among the combinations, a rotor length of 7.5cm, a leg length of 12.0cm, a leg width of 5.0cm, and a paper clip at the bottom of the leg (bcd) will make the helicopter fly the longest, for 2.302s on average.
 
-What would you recommend as the ideal combination to make the helicopter fly long? -> bcd???
-Regression diagnostics?
+**Not sure the way I calculated this right, could you check for average fly time for bcd?**
+**Is regression diagnostics necessary??**
 
 ```{r}
 #Residual Plot
-boxplot(regHeli$residual~heliData$treatments, xlab = "Treatment", ylab = "Residuals")
+boxplot(regHeli$residuals~heliData$treatments, xlab = "Treatment", ylab = "Residuals")
 #Diagnostic Plots
 plot(regHeli)
 ```
 
-
-
 ####Discussion
-  In our data collection process, there are a few possible sources of error. First, the helicopters are dropped by hand. The person who drops them might apply some force on the helicopter upon releasing, resulting in different initial velocities. In some cases, in order not to let helicopters hit the wall, the person stood away from any surfaces and may make dropping heights vary due to lack of marking. Second, because the time is recorded by hand, inaccuracy is inevitable. It is especially difficult to start and stop the timer exactly at the moment the helicopter is dropped or when it hits the ground. Eyeballing for both timing and dropping heights can lead to noises and inaccuracies in the data. Increasing repetitions for each assignment may be helpful. In addition, we notice that in some trials the helicopter spins vertically and stably while in others it randomly floats around. The helicopter can move in the air for a similar amount of time, but some designs may allow it to fly more "properly" than others, and therefore the fly time may not be the most optimal outcome variable upon which the design factors are evaluated. For the narrower leg width, since two pieces of paper are folded to the center according to instruction, this may add more stability to the helicopter than the case with a wider leg width where it is just a piece of paper. It can be a confounding factor in the analysis. 
+  There are a few limitations and possible sources of error in our experiment design and data collection process. First, the helicopters are dropped by hand. The person who drops them might apply some force on the helicopter upon releasing, resulting in different initial velocities. In some cases, in order not to let helicopters hit the wall, the person stood away from any surfaces and may make dropping heights vary due to lack of marking. Second, because the time is recorded by hand, inaccuracy is inevitable. It is especially difficult to start and stop the timer exactly at the moment the helicopter is dropped or when it hits the ground. Eyeballing for both timing and dropping heights can lead to noises and inaccuracies in the data. Increasing repetitions for each assignment may be helpful. In addition, we notice that in some trials the helicopter spins vertically and stably while in others it randomly floats around. The helicopter can move in the air for a similar amount of time, but some designs may allow it to fly more "properly" than others, and therefore the fly time may not be the most optimal outcome variable upon which the design factors are evaluated. For the narrower leg width, since two pieces of paper are folded to the center according to instruction, this may add more stability to the helicopter than the case with a wider leg width where it is just a piece of paper. It can be a confounding factor in the analysis. 
+
+**any more limitations?**
   
 ####Code
 
 ```{r message=FALSE, warning=FALSE}
 #Randomize treatment assignments
-assignments = c(rep("o",5), rep("a",5), rep("b",5), rep("c",5), rep("d",5),
-                rep("ab",5), rep("ac",5),rep("ad",5), rep("bc",5), rep("bd",5),
-                rep("cd",5), rep("abc",5), rep("abd",5), rep("acd",5), 
-                rep("bcd",5), rep("abcd",5))
-set.seed(322)
-assignments = sample(assignments)
-helidata = data.frame(treatments = assignments, 
-                      a = NA, b = NA, c = NA, d = NA, time = NA)
-write.csv(helidata, file = "helidata.csv")
+# assignments = c(rep("o",5), rep("a",5), rep("b",5), rep("c",5), rep("d",5),
+#                 rep("ab",5), rep("ac",5),rep("ad",5), rep("bc",5), rep("bd",5),
+#                 rep("cd",5), rep("abc",5), rep("abd",5), rep("acd",5), 
+#                 rep("bcd",5), rep("abcd",5))
+# set.seed(322)
+# assignments = sample(assignments)
+# helidata = data.frame(treatments = assignments, 
+#                       a = NA, b = NA, c = NA, d = NA, time = NA)
+# write.csv(helidata, file = "helidata.csv")
 
 #Collect data, enter manually, and read file again
 heliData = read.csv("helidata.csv", header = TRUE)
@@ -121,8 +126,27 @@ knitr::kable(data.frame(estimates = regHeli$coefficients,
                                     0.2504,0.8937)),
              caption = "Full Factorial Regression Results")
 
+#nested F-test to find the most important main factor
+regHeli2 = lm(time ~ b*c*d, data = heliData)
+regHeli3 = lm(time ~ a*c*d, data = heliData)
+regHeli4 = lm(time ~ a*b*c, data = heliData)
+
+anova(regHeli, regHeli2)
+#F = 2.1182, p-value = 0.04664
+anova(regHeli, regHeli3)
+#F = 7.0098, p-value = 1.332e-06
+anova(regHeli, regHeli4)
+#F = 7.7634, p-value = 3.224e-07
+
+#try a smaller model with three-way and four-way interactions
+smallHeli = lm(time ~ a*b + a*c + a*d + b*c + b*d + c*d, data = heliData)
+summary(smallHeli)
+#R-squared and adjusted R-squared both decreased
+anova(regHeli, smallHeli)
+#does not make a difference so we can keep the full model
+
 #Residual Plot
-boxplot(regHeli$residual~heliData$treatments, xlab = "Treatment", ylab = "Residuals")
+boxplot(regHeli$residuals~heliData$treatments, xlab = "Treatment", ylab = "Residuals")
 #Diagnostic Plots
 plot(regHeli)
 ```
